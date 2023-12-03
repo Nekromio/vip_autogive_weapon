@@ -87,6 +87,8 @@ static const char g_sFeature[][] =
 	"smokegrenade"
 };
 
+static const char g_sFeatureC4[] = "C4";
+
 void CreatMenu_AutoGiveWeapon(int client)
 {
 	Menu hMenu = new Menu(Menu_Base);
@@ -636,19 +638,41 @@ void CreatMenu_SecondaryEdit(int client)
 	Menu hMenu = new Menu(Menu_Secondary);
 	hMenu.SetTitle("Выбор вторичного");
 
-	char sItem[256];
+	char sItem[256], sBuffer[8];
 
 	for(int i = 23; i < sizeof(sPrimaryListKey); i++)
 	{
 		switch(i)
 		{
-			case 23: FormatEx(sItem, sizeof(sItem), "[%s] -> [%s]", sPrimaryListValue[i], SettingsInfo[client].bC4 ? "√" : "×");
+			case 23:
+			{
+				if(cvEnableC4.BoolValue)
+				{
+					FormatEx(sItem, sizeof(sItem), "[%s] -> [%s]", sPrimaryListValue[i], SettingsInfo[client].bC4 ? "√" : "×");
+				}
+				else
+				{
+					FormatEx(sItem, sizeof(sItem), "[%s] -> [%s] (%s)", sPrimaryListValue[i], SettingsInfo[client].bC4 ? "√" : "×", "Заблокировано");
+				}
+			}
 			case 24: FormatEx(sItem, sizeof(sItem), "[%s] -> [%s]", sPrimaryListValue[i], SettingsInfo[client].bDefuser ? "√" : "×");
 			case 25: FormatEx(sItem, sizeof(sItem), "[%s] -> [%s]", sPrimaryListValue[i], SettingsInfo[client].bNvgs ? "√" : "×");
 			case 26: FormatEx(sItem, sizeof(sItem), "[%s] -> [%s]", sPrimaryListValue[i], SettingsInfo[client].bAssaultsuit ? "√" : "×");
+		}	
+
+		if(i == 23 && VIP_IsClientVIP(client) && VIP_IsClientFeatureUse(client, g_sFeatureC4))
+		{
+			if(!cvEnableC4.BoolValue)
+			{
+				hMenu.AddItem(sBuffer, sItem, ITEMDRAW_DISABLED);
+			}
+			else
+			{
+				hMenu.AddItem(sBuffer, sItem);
+			}
 		}
-		
-		hMenu.AddItem("item1", sItem);
+		else if(i != 23)
+			hMenu.AddItem(sBuffer, sItem);
 	}
 
 	hMenu.ExitBackButton = true;

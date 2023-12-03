@@ -9,7 +9,8 @@ Database
 
 ConVar
 	cvEnable,
-	cvGiveRespawn;
+	cvGiveRespawn,
+	cvEnableC4;
 
 StringMap
 	hTriePrimary,
@@ -29,6 +30,8 @@ static const char g_sFeature[][] =
 };
 
 static const char g_sFeatureWeapon[][] = {"AutoGive_Weapon", "AutoGive_WeaponMenu"};
+
+static const char g_sFeatureC4[] = "C4";
 
 static const char sGrenadeList[][] =
 {
@@ -66,7 +69,7 @@ public Plugin myinfo =
 	name = "[ViP Core] AutoGive Weapon",
 	author = "Nek.'a 2x2 | ggwp.site",
 	description = "Автовыдача оружия",
-	version = "1.0.0 100",
+	version = "1.0.0 101",
 	url = "https://ggwp.site/"
 };
 
@@ -76,6 +79,8 @@ public void OnPluginStart()
 	
 	cvGiveRespawn = CreateConVar("sm_autogive_respawn", "2", "0 выдавать при возрождении снаряжение и гранаты | 1 только в начале раунда | 2 каждое возраждение только снаряжение, но при старте и гранаты",
 	 _, true, 0.0, true, 2.0);
+
+	cvEnableC4 = CreateConVar("sm_autogive_enable_c4", "0", "Включить/Выключить выдачу бомбы", _, true, _, true, 1.0);
 
 	HookEvent("round_end", Event_RoundEnd);
 	HookEvent("player_spawn", Event_PlayerSpawn);
@@ -104,12 +109,18 @@ public void OnPluginEnd()
 		if(CanTestFeatures() && GetFeatureStatus(FeatureType_Native, "VIP_UnregisterFeature") == FeatureStatus_Available && VIP_IsValidFeature(g_sFeature[i]))
 			VIP_UnregisterFeature(g_sFeature[i]);
 	}
+	if(CanTestFeatures() && GetFeatureStatus(FeatureType_Native, "VIP_UnregisterFeature") == FeatureStatus_Available)
+	{
+		VIP_UnregisterFeature(g_sFeatureC4);
+	}
 }
 
 public void VIP_OnVIPLoaded()
 {
 	VIP_RegisterFeature(g_sFeatureWeapon[0], BOOL);
 	VIP_RegisterFeature(g_sFeatureWeapon[1], _, SELECTABLE, OnItemSelect, _, OnItemDraw);
+
+	VIP_RegisterFeature(g_sFeatureC4, BOOL, HIDE);
 
 	for(int i = 0; i < sizeof(g_sFeature); i++)
 	{
@@ -337,12 +348,15 @@ void GeveSecondary(int client)
 	}
 	
 	if(GetClientTeam(client) == 3 && SettingsInfo[client].bDefuser)// && GetEntProp(client, Prop_Send, "m_bHasDefuser") == 0)
-		GivePlayerItem(client, "item_defuser");
+	{
+		SetEntProp(client, Prop_Send, "m_bHasDefuser", true);
+		//GivePlayerItem(client, "item_defuser");
+	}
 
 	if(SettingsInfo[client].bNvgs)// && GetEntProp(client, Prop_Send, "item_nvgs")  == 0)
 		GivePlayerItem(client, "item_nvgs");
 
-	if(GetClientTeam(client) == 2 && SettingsInfo[client].bC4)
+	if(cvEnableC4.BoolValue && GetClientTeam(client) == 2 && SettingsInfo[client].bC4 && VIP_IsClientVIP(client) && VIP_IsClientFeatureUse(client, g_sFeatureC4))
 	{
 		int slot = GetPlayerWeaponSlot(client, 4);
 		if(slot == -1)
