@@ -189,7 +189,7 @@ void CreatMenu_PrimaryActivity(int client)
 
 	hMenu.ExitBackButton = true;
 
-	DisplayMenu(hMenu, client, 20);
+	hMenu.Display(client, 20);
 }
 
 public int Menu_Primary(Menu hMenu, MenuAction action, int client, int iItem)

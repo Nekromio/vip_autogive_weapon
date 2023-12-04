@@ -69,7 +69,7 @@ public Plugin myinfo =
 	name = "[ViP Core] AutoGive Weapon",
 	author = "Nek.'a 2x2 | ggwp.site",
 	description = "Автовыдача оружия",
-	version = "1.0.0 101",
+	version = "1.0.0 102",
 	url = "https://ggwp.site/"
 };
 
@@ -98,18 +98,23 @@ public void OnPluginStart()
 
 public void OnPluginEnd()
 {
-	if(CanTestFeatures() && GetFeatureStatus(FeatureType_Native, "VIP_UnregisterFeature") == FeatureStatus_Available)
+	if(!CanTestFeatures() || GetFeatureStatus(FeatureType_Native, "VIP_UnregisterFeature") != FeatureStatus_Available)
 	{
+    	return;
+	}
+  
+	if(VIP_IsValidFeature(g_sFeatureWeapon[0]))
 		VIP_UnregisterFeature(g_sFeatureWeapon[0]);
+
+	if(VIP_IsValidFeature(g_sFeatureWeapon[1]))
 		VIP_UnregisterFeature(g_sFeatureWeapon[1]);
+
+	for(int i = 0; i < sizeof(g_sFeature); i++)	if(VIP_IsValidFeature(g_sFeature[i]))
+	{
+		VIP_UnregisterFeature(g_sFeature[i]);
 	}
 
-	for(int i = 0; i < sizeof(g_sFeature); i++)
-	{
-		if(CanTestFeatures() && GetFeatureStatus(FeatureType_Native, "VIP_UnregisterFeature") == FeatureStatus_Available && VIP_IsValidFeature(g_sFeature[i]))
-			VIP_UnregisterFeature(g_sFeature[i]);
-	}
-	if(CanTestFeatures() && GetFeatureStatus(FeatureType_Native, "VIP_UnregisterFeature") == FeatureStatus_Available)
+	if(VIP_IsValidFeature(g_sFeatureC4))
 	{
 		VIP_UnregisterFeature(g_sFeatureC4);
 	}
