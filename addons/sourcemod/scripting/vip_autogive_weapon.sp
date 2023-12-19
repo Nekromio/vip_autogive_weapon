@@ -69,7 +69,7 @@ public Plugin myinfo =
 	name = "[ViP Core] AutoGive Weapon",
 	author = "Nek.'a 2x2 | ggwp.site",
 	description = "Автовыдача оружия",
-	version = "1.0.0 102",
+	version = "1.0.0 103",
 	url = "https://ggwp.site/"
 };
 
@@ -263,6 +263,9 @@ void SettingDefault(int client)
 
 void GiveWeaponPrimary(int client)
 {
+	if(CheckWepon(client, 0))
+		return;
+
 	if(!SettingsInfo[client].bPrimaryActiveT && !SettingsInfo[client].bPrimaryActiveCT)
 		return;
 
@@ -288,6 +291,9 @@ void GiveWeaponPrimary(int client)
 
 void GiveWeaponPistol(int client)
 {
+	if(CheckWepon(client, 1))
+		return;
+
 	if(!SettingsInfo[client].bPistolActiveT && !SettingsInfo[client].bPistolActiveCT)
 		return;
 
@@ -367,5 +373,41 @@ void GeveSecondary(int client)
 		if(slot == -1)
 			GivePlayerItem(client, "weapon_c4");
 	}
-		
+}
+
+bool CheckWepon(int client, int index)
+{
+	char sWeapon[16];
+	int slot = GetPlayerWeaponSlot(client, index);
+
+	if(slot == -1)
+		return false;
+
+	GetEntityClassname(slot, sWeapon, sizeof(sWeapon));
+
+	if(index)
+	{
+		if(GetClientTeam(client) == 3)
+		{
+			if(!strcmp(sWeapon, "") || !strcmp(sWeapon, "weapon_usp"))
+			{
+				return false;
+			}
+		}
+		if(GetClientTeam(client) == 2)
+		{
+			if(!strcmp(sWeapon, "") || !strcmp(sWeapon, "weapon_glock"))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	if(!index && !strcmp(sWeapon, ""))
+	{
+		return false;
+	}
+
+	return true;
 }

@@ -640,7 +640,12 @@ void CreatMenu_SecondaryEdit(int client)
 
 	char sItem[256], sBuffer[8];
 
-	for(int i = 23; i < sizeof(sPrimaryListKey); i++)
+	int count;
+	if(VIP_IsClientVIP(client) && VIP_IsClientFeatureUse(client, g_sFeatureC4))
+		count = 23;
+	else
+		count = 24;
+	for(int i = count; i < sizeof(sPrimaryListKey); i++)
 	{
 		switch(i)
 		{
@@ -697,39 +702,47 @@ public int Menu_Secondary(Menu hMenu, MenuAction action, int client, int iItem)
         }
 		case MenuAction_Select:
         {
+			bool bSet = VIP_IsClientVIP(client) && VIP_IsClientFeatureUse(client, g_sFeatureC4);
 			switch(iItem)
 			{
 				case 0:
 				{
-					if(SettingsInfo[client].bC4)
-						SettingsInfo[client].bC4 = false;
+					if(bSet)
+						CheckCvar(SettingsInfo[client].bC4);
 					else
-						SettingsInfo[client].bC4 = true;
+						CheckCvar(SettingsInfo[client].bDefuser);
 				}
 				case 1:
 				{
-					if(SettingsInfo[client].bDefuser)
-						SettingsInfo[client].bDefuser = false;
+
+					if(bSet)
+						CheckCvar(SettingsInfo[client].bDefuser);
 					else
-						SettingsInfo[client].bDefuser = true;
+						CheckCvar(SettingsInfo[client].bNvgs);
 				}
 				case 2:
 				{
-					if(SettingsInfo[client].bNvgs)
-						SettingsInfo[client].bNvgs = false;
+					if(bSet)
+						CheckCvar(SettingsInfo[client].bNvgs);
 					else
-						SettingsInfo[client].bNvgs = true;
+						CheckCvar(SettingsInfo[client].bAssaultsuit);
 				}
 				case 3:
 				{
-					if(SettingsInfo[client].bAssaultsuit)
-						SettingsInfo[client].bAssaultsuit = false;
-					else
-						SettingsInfo[client].bAssaultsuit = true;
+					if(bSet)
+						CheckCvar(SettingsInfo[client].bAssaultsuit);
 				}
 			}
 			CreatMenu_SecondaryEdit(client);
         }
 	}
 	return 0;
+}
+
+void CheckCvar(bool &bSetting)
+{
+	if(bSetting)
+		bSetting = false;
+	else
+		bSetting = true;
 }
