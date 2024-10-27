@@ -1,94 +1,3 @@
-static const char sPistolListKey[][] =
-{
-	"glock",
-	"usp",
-	"p228",
-	"deagle",
-	"elite",
-	"fiveseven"
-};
-
-static const char sPistolListValue[][] =
-{
-	"Глок",
-	"USP",
-	"Compact",
-	"Дизирт|Дигл",
-	"Беретты",
-	"Five-Seven"
-};
-
-static const char sPrimaryListKey[][] =
-{		
-	"m3",			
-	"xm1014",
-	"mac10",						
-	"ak47",			
-	"m4a1",			
-	"tmp",			
-	"famas",			
-	"mp5navy",		
-	"nova",			
-	"ump45",			
-	"p90",			
-	"galil",			
-	"awp",			
-	"scout",			
-	"sg550",			
-	"sg552",			
-	"mp5sd",			
-	"m249",			
-	"aug",			
-	"g3sg1",
-	"flashbang",
-	"hegrenade",
-	"smokegrenade",
-	"c4",
-	"item_defuser",
-	"item_nvgs",
-	"item_assaultsuit"
-};
-
-static const char sPrimaryListValue[][] =
-{
-	"M3 (2-1)",
-	"XM1014 (2-2)",
-	"MAC10 (3-1)",
-	"AK-47",
-	"M4A4",
-	"tmp",
-	"FAMAS",
-	"mp5navy (Муха)",
-	"Nova",
-	"ump45",
-	"p90",
-	"galil",
-	"AWP",
-	"scout",
-	"sg550",
-	"MAG-7",
-	"sg552",
-	"m249",
-	"AUG",
-	"G3SG1",
-	"Флешка",
-	"Граната",
-	"Дымовая граната",
-	"Бомба",
-	"Щипцы",
-	"Ночное видинье",
-	"Бронежилет + шлем"
-};
-
-static const char g_sFeature[][] =
-{
-	"hegrenade",
-	"flashbang",
-	"smokegrenade"
-};
-
-static const char g_sFeatureC4[] = "C4";
-
 void CreatMenu_AutoGiveWeapon(int client)
 {
 	Menu hMenu = new Menu(Menu_Base);
@@ -337,7 +246,6 @@ public int Menu_PrimaryEdit(Menu hMenu, MenuAction action, int client, int iItem
 				case 1: CreatMenu_PrimaryEditCT(client);
 			}
         }
-	
 	}
 	return 0;
 }
@@ -352,7 +260,11 @@ void CreatMenu_PrimaryEditT(int client)
 	for(int i; i < 20; i++)
 	{
 		FormatEx(sItem, sizeof(sItem), "Терры [%s]", sPrimaryListValue[i]);
-		hMenu.AddItem("item1", sItem);
+
+		if(cvPrimary[i].BoolValue)
+			hMenu.AddItem("item1", sItem);
+		else
+			hMenu.AddItem("item1", sItem, ITEMDRAW_DISABLED);
 	}
 
 	hMenu.ExitBackButton = true;
@@ -639,7 +551,7 @@ void CreatMenu_SecondaryEdit(int client)
 	hMenu.SetTitle("Выбор вторичного");
 
 	char sItem[256], sBuffer[8];
-
+	
 	int count;
 	if(VIP_IsClientVIP(client) && VIP_IsClientFeatureUse(client, g_sFeatureC4))
 		count = 23;

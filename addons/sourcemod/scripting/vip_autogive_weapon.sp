@@ -10,7 +10,8 @@ Database
 ConVar
 	cvEnable,
 	cvGiveRespawn,
-	cvEnableC4;
+	cvEnableC4,
+	cvPrimary[24];
 
 StringMap
 	hTriePrimary,
@@ -22,16 +23,7 @@ int
 char
 	sFile[PLATFORM_MAX_PATH];
 
-static const char g_sFeature[][] =
-{
-	"hegrenade",
-	"flashbang",
-	"smokegrenade"
-};
-
 static const char g_sFeatureWeapon[][] = {"AutoGive_Weapon", "AutoGive_WeaponMenu"};
-
-static const char g_sFeatureC4[] = "C4";
 
 static const char sGrenadeList[][] =
 {
@@ -61,6 +53,97 @@ enum struct WeaponSettings
 
 WeaponSettings SettingsInfo[MAXPLAYERS+1];
 
+char sPistolListKey[][] =
+{
+	"glock",
+	"usp",
+	"p228",
+	"deagle",
+	"elite",
+	"fiveseven"
+};
+
+char sPistolListValue[][] =
+{
+	"Глок",
+	"USP",
+	"Compact",
+	"Дизирт|Дигл",
+	"Беретты",
+	"Five-Seven"
+};
+
+char sPrimaryListKey[][] =
+{		
+	"m3",			
+	"xm1014",
+	"mac10",						
+	"ak47",			
+	"m4a1",			
+	"tmp",			
+	"famas",			
+	"mp5navy",		
+	"nova",				//
+	"ump45",			
+	"p90",			
+	"galil",			
+	"awp",			
+	"scout",			
+	"sg550",			
+	"sg552",			
+	"mp5sd",			//
+	"m249",			
+	"aug",			
+	"g3sg1",
+	"flashbang",
+	"hegrenade",
+	"smokegrenade",
+	"c4",
+	"item_defuser",
+	"item_nvgs",
+	"item_assaultsuit"
+};
+
+char sPrimaryListValue[][] =
+{
+	"M3 (2-1)",
+	"XM1014 (2-2)",
+	"MAC10 (3-1)",
+	"AK-47",
+	"M4A4",
+	"tmp",
+	"FAMAS",
+	"mp5navy (Муха)",
+	"Nova",
+	"ump45",
+	"p90",
+	"galil",
+	"AWP",
+	"scout",
+	"sg550",
+	"MAG-7",
+	"sg552",
+	"m249",
+	"AUG",
+	"G3SG1",
+	"Флешка",
+	"Граната",
+	"Дымовая граната",
+	"Бомба",
+	"Щипцы",
+	"Ночное видинье",
+	"Бронежилет + шлем"
+};
+
+char g_sFeature[][] =
+{
+	"hegrenade",
+	"flashbang",
+	"smokegrenade"
+};
+
+char g_sFeatureC4[] = "C4";
+
 #include "autogive/db.sp"
 #include "autogive/menu.sp"
 
@@ -69,7 +152,7 @@ public Plugin myinfo =
 	name = "[ViP Core] AutoGive Weapon",
 	author = "Nek.'a 2x2 | ggwp.site",
 	description = "Автовыдача оружия",
-	version = "1.0.0 103",
+	version = "1.0.0 104",
 	url = "https://ggwp.site/"
 };
 
@@ -81,6 +164,19 @@ public void OnPluginStart()
 	 _, true, 0.0, true, 2.0);
 
 	cvEnableC4 = CreateConVar("sm_autogive_enable_c4", "0", "Включить/Выключить выдачу бомбы", _, true, _, true, 1.0);
+
+	char buffer[32], text[256], value[8];
+	for(int i = 0; i < 24; i++)
+	{
+		FormatEx(buffer, sizeof(buffer), "sm_autogive_%s", sPrimaryListKey[i]);
+		FormatEx(text, sizeof(text), "Включить/Выключить выдачу %s", sPrimaryListValue[i]);
+		if(i == 14 || i == 19)	//sg550 и g3sg1
+			FormatEx(value, sizeof(value), "%d", 0);
+		else FormatEx(value, sizeof(value), "%d", 1);
+		cvPrimary[i] = CreateConVar(buffer, value, text, _, true, _, true, 1.0);
+	}
+	//cvPrimary[12] = CreateConVar("sm_autogive_awp", "0", "Включить/Выключить выдачу awp", _, true, _, true, 1.0);
+
 
 	HookEvent("round_end", Event_RoundEnd);
 	HookEvent("player_spawn", Event_PlayerSpawn);
@@ -94,10 +190,14 @@ public void OnPluginStart()
 	AutoExecConfig(true, "AutoGive_Weapon", "vip");
 
 	if(VIP_IsVIPLoaded()) VIP_OnVIPLoaded();
+
+	for(int i = 1; i <= MaxClients; i++) if(IsClientInGame(i)) OnClientPostAdminCheck(i);
 }
 
 public void OnPluginEnd()
 {
+	for(int i = 1; i <= MaxClients; i++) if(IsClientInGame(i) && !IsFakeClient(i) && VIP_IsClientVIP(i)) SaveSettings(i);
+
 	if(!CanTestFeatures() || GetFeatureStatus(FeatureType_Native, "VIP_UnregisterFeature") != FeatureStatus_Available)
 	{
     	return;
@@ -231,15 +331,16 @@ Action Cmd_AutoGive(int client, any arg)
 
 public void OnClientPostAdminCheck(int client)
 {
-	if(!cvEnable.BoolValue || !IsFakeClient(client))
-	{
-		char sQuery[512], sSteam[32];
-		GetClientAuthId(client, AuthId_Steam2, sSteam, sizeof(sSteam), true);
-		FormatEx(sQuery, sizeof(sQuery), "SELECT `primary_atvive_t`, `primary_atvive_ct`, `pistol_atvive_t`, `pistol_atvive_ct`,\
-		`primary_t`, `primary_ct`, `pistol_t`, `pistol_ct`, `flashbang`, `hegrenade`, `smokegrenade`, `c4`,\
-		`defuser`, `nvgs`, `assaultsuit` FROM `vip_autogive_weapon` WHERE `steam_id` = '%s'", sSteam);
-		hDatabase.Query(ConnectClient_Callback, sQuery, GetClientUserId(client));
-	}
+	if(!cvEnable.BoolValue || IsFakeClient(client))
+		return;
+
+	char sQuery[512], sSteam[32];
+	GetClientAuthId(client, AuthId_Steam2, sSteam, sizeof(sSteam), true);
+
+	FormatEx(sQuery, sizeof(sQuery), "SELECT `primary_atvive_t`, `primary_atvive_ct`, `pistol_atvive_t`, `pistol_atvive_ct`,\
+	`primary_t`, `primary_ct`, `pistol_t`, `pistol_ct`, `flashbang`, `hegrenade`, `smokegrenade`, `c4`,\
+	`defuser`, `nvgs`, `assaultsuit` FROM `vip_autogive_weapon` WHERE `steam_id` = '%s'", sSteam);
+	hDatabase.Query(ConnectClient_Callback, sQuery, GetClientUserId(client));
 }
 
 void SettingDefault(int client)
@@ -263,29 +364,38 @@ void SettingDefault(int client)
 
 void GiveWeaponPrimary(int client)
 {
-	if(CheckWepon(client, 0))
+	if (CheckWepon(client, 0))
 		return;
 
-	if(!SettingsInfo[client].bPrimaryActiveT && !SettingsInfo[client].bPrimaryActiveCT)
+	//Команда
+	int team = GetClientTeam(client) - 2;
+
+	if (team < 0)
 		return;
 
-	int slot = GetPlayerWeaponSlot(client, 0);
-
-	if(slot != -1)
-		RemovePlayerItem(client, slot);
+	// Проверка доступности оружия для соответствующей команды
+	if ((team == 0 && !SettingsInfo[client].bPrimaryActiveT) || 
+	    (team == 1 && !SettingsInfo[client].bPrimaryActiveCT))
+		return;
 
 	char sBuffer[32];
+	
+	// Выбираем оружие в зависимости от команды
+	char selectedWeapon[32];
+	strcopy(selectedWeapon, sizeof(selectedWeapon), team == 0 ? SettingsInfo[client].sPrimaryT : SettingsInfo[client].sPrimaryCT);
 
-	if(SettingsInfo[client].bPrimaryActiveT && GetClientTeam(client) == 2)
+	for (int i = 0; i < sizeof(sPrimaryListKey); i++)
 	{
-		FormatEx(sBuffer, sizeof(sBuffer), "weapon_%s", SettingsInfo[client].sPrimaryT);
-		GivePlayerItem(client, sBuffer);
-	}
-		
-	else if(SettingsInfo[client].bPrimaryActiveCT && GetClientTeam(client) == 3)
-	{
-		FormatEx(sBuffer, sizeof(sBuffer), "weapon_%s", SettingsInfo[client].sPrimaryCT);
-		GivePlayerItem(client, sBuffer);
+		if (!strcmp(sPrimaryListKey[i], selectedWeapon))
+		{
+			// Проверяем, разрешено ли оружие
+			if (!cvPrimary[i].BoolValue || !selectedWeapon[0])
+				return;
+
+			RemoveSlot(client, 0);
+			FormatEx(sBuffer, sizeof(sBuffer), "weapon_%s", selectedWeapon);
+			GivePlayerItem(client, sBuffer);
+		}
 	}
 }
 
@@ -294,27 +404,37 @@ void GiveWeaponPistol(int client)
 	if(CheckWepon(client, 1))
 		return;
 
-	if(!SettingsInfo[client].bPistolActiveT && !SettingsInfo[client].bPistolActiveCT)
+	//Команда
+	int team = GetClientTeam(client) - 2;
+
+	if (team < 0)
 		return;
 
-	int slot = GetPlayerWeaponSlot(client, 1);
-
-	if(slot != -1)
-		RemovePlayerItem(client, slot);
+	// Проверка доступности оружия для соответствующей команды
+	if ((team == 0 && !SettingsInfo[client].bPistolActiveT) || 
+	    (team == 1 && !SettingsInfo[client].bPistolActiveCT))
+		return;
 
 	char sBuffer[32];
 
-	if(SettingsInfo[client].bPistolActiveT && GetClientTeam(client) == 2)
-	{
-		FormatEx(sBuffer, sizeof(sBuffer), "weapon_%s", SettingsInfo[client].sPistolT);
-		GivePlayerItem(client, sBuffer);
-	}
-		
-	else if(SettingsInfo[client].bPistolActiveCT && GetClientTeam(client) == 3)
-	{
-		FormatEx(sBuffer, sizeof(sBuffer), "weapon_%s", SettingsInfo[client].sPistolCT);
-		GivePlayerItem(client, sBuffer);
-	}
+	// Выбираем оружие в зависимости от команды
+	char selectedWeapon[32];
+	strcopy(selectedWeapon, sizeof(selectedWeapon), team == 0 ? SettingsInfo[client].sPistolT : SettingsInfo[client].sPistolCT);
+
+	if (!selectedWeapon[0])
+		return;
+
+	RemoveSlot(client, 1);
+	FormatEx(sBuffer, sizeof(sBuffer), "weapon_%s", selectedWeapon);
+	GivePlayerItem(client, sBuffer);
+}
+
+void RemoveSlot(int client, int index)
+{
+	int slot = GetPlayerWeaponSlot(client, index);
+
+	if(slot != -1)
+		RemovePlayerItem(client, slot);
 }
 
 void GiveGrenade(int client)
